@@ -89,7 +89,7 @@ RUN python -m venv /py && \
     /py/bin/pip install -r /tmp/requirements.txt && \
     if [ $DEV = "true" ]; \
         then /py/bin/pip install -r /tmp/requirements.dev.txt ; \
-    fi && \ 
+    fi && \
     rm -rf /tmp && \
     apk del .tmp-build-deps && \
     adduser \
@@ -121,7 +121,7 @@ app/*/*/*/__pycache__/
 venv/
 ```
 
-#### 5.1. Now I can build the empty propject
+#### 5.1. Now I can build the empty project
 
 `$ docker-compose build`
 
@@ -432,12 +432,506 @@ class CommandTests(SimpleTestCase):
 
 ```
 
-### 4. Run tests to provoke assertion errors
+### 4. Run tests
 
-Run the mock test for the running condition:
+Run the mock test for the race condition:
 
 `$ docker-compose run --rm app sh -c "python manage.py test"`
 
-Test the real running condition fix, as well as the unit tests:
+Test the real race condition fix, as well as the unit tests:
 
 `$ docker-compose run --rm app sh -c "python manage.py wait_for_db && flake8"`
+
+
+## ... Create User API and Other Configurations ...
+
+...
+
+## Build Recipe API
+
+### 1. Recipe API Design
+
+#### 1.1. Features
+
+All features will be specific for the authenticated user:
+
+- Create
+- List
+- View detail
+- Update
+- Delete
+
+#### 1.2. Endpoints
+
+- /recipes/
+  - GET - List all recipes
+  - POST - Create new recipe for the authenticated user
+- /recipes/<recipe_id>/
+  - GET - View details of recipe
+  - PUT/PATCH - Update recipe
+  - DELETE - Delete recipe
+
+### 2. APIView vs Viewsets
+
+#### What is a View?
+
+- Handles the requests made to a particular URL.
+- Django uses functions
+- DRF (Django REST Frameword) uses classes
+  - Reuse of code
+  - Overide behavior
+- DRF also support decorators
+- **APIView** and **Viewsets** are Django base classes
+
+#### APIView
+
+- Focused around HTTP methods
+- Class methods for API methods
+  - GET, POST, PUT, PATCH, DELETE
+- Provide flexibility over URLs and logic
+- Useful for non CRUD APIs
+  - Bespoke logic (eg: auth, jobs, external APIs)
+
+#### Viewsets
+
+- Focused around actions
+  - Retrieve, delete, update, partial update, destroy
+- Map to Django models
+- Uses Routers to generate URLs
+- Great for CRUD operations on models
+
+### 3. Write tests for recipe model
+
+**3.1. Create test**
+
+app\core\tests\test_model_recipe.py
+```
+"""
+Teste for models.
+"""
+from decimal import Decimal
+
+from django.test import TestCase
+from django.contrib.auth import get_user_model
+
+from core import models
+
+
+class RecipeModelTests(TestCase):
+    """Tests for the Recipe model."""
+
+    def test_create_recipe(self):
+        """Test creating a recipe is successful."""
+        user = get_user_model().objects.create_user (
+            email='test@example.com',
+            password='testpass123',
+        )
+        recipe = models.Recipe.objects.create(
+            user=user,
+            title='Sample recipe name',
+            time_minutes=5,
+            price=Decimal('5.50'),
+            description='Sample recipe description',
+        )
+
+        self.assertEqual(str(recipe), recipe.title)
+
+```
+
+**3.2. Run the test (Fail)**
+
+`$ docker-compose run --rm app sh -c "python manage.py test"`
+
+### 4. Create recipe model
+
+**4.1. Write model**
+
+- Recipes are linked to individual users.
+
+app\core\models\recipe.py
+```
+"""
+Recipe model.
+"""
+from django.conf import settings
+from .user_manager import UserManager
+from django.db import models
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    PermissionsMixin,
+)
+
+class Recipe(models.Model):
+    """Recipe object."""
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    time_minutes = models.IntegerField()
+    price = models.DecimalField(max_digits=5, decimal_places=2)
+    link = models.CharField(max_length=255, blank=True)
+
+
+    def __str__(self):
+        return self.title
+
+```
+
+**4.2. Enable model in the Django admin:**
+
+- Add line at the end of the file
+- There is no need for specifying a base class
+
+> admin.site.register(models.Recipe)
+
+**4.3. Create the migration**
+
+`$ docker-compose run --rm app sh -c "python manage.py makemigrations"`
+
+**4.4. Run the test again (success)**
+
+`$ docker-compose run --rm app sh -c "python manage.py test"`
+
+### 5. Create recipe app
+
+**5.1. Create the app**
+
+`$ docker-compose run --rm app sh -c "python manage.py startapp recipe"`
+
+**5.2. Remove unnecessary files**
+
+- /recipe/migrations/
+- /recipe/admin.py
+- /recipe/models.py
+- /recipe/tests.py
+
+**5.3. Create tests directory**
+
+- /recipe/tests/
+- /recipe/tests/__init__.py
+
+**5.4. Add app to the list of installed apps**
+
+app\app\settings.py
+
+```
+(...)
+
+INSTALLED_APPS = [
+  (...)
+  'recipe',
+]
+
+(...)
+```
+
+### 6. Write tests for listing recipes
+
+**6.1. app\recipe\tests\test_recipe_api.py**
+
+```
+"""
+Tests for recipe API.
+"""
+from decimal import Decimal
+
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+from django.urls import reverse
+
+from rest_framework import status
+from rest_framework.test import APIClient
+
+from core.models import recipe
+
+from recipe.serializers import RecipeSerializer
+
+
+RECIPE_URL = reverse('recipe:recipe-list')
+
+
+def create_recipe(user, **params):
+    """Create and return the sample recipe."""
+    defaults = {
+        'title': 'Sample recipe title',
+        'time_minnutes': 22,
+        'price': Decimal('5.25'),
+        'description': 'Sample description',
+        'link': 'http://example.com/recipe.pdf'
+    }
+    defaults.update(params)
+
+    recipe = Recipe.objects.create(user= user, **defaults)
+    return recipe
+
+
+class PublicRecipeAPITests(TestCase):
+    """Test unauthenticated API requests."""
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_auth_required(self):
+        """Test auth is required to call API."""
+        res = self.client.get(RECIPE_URL)
+
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class PrivateRecipeAPITests(TestCase):
+    """Test authenticated API requests."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = get_user_model().objects.create_user(
+            'user@example.com',
+            'testpass123',
+        )
+        self.client.force_authenticate(self.user)
+
+    def test_retrieve_recipes(self):
+        """Test retrieving a list of recipes."""
+        create_recipe(user=self.user)
+        create_recipe(user=self.user)
+
+        res = self.client.get(RECIPE_URL)
+
+        recipes = Recipe.objects.all().order_by('-id')
+        serializer = RecipeSerializer(recipes, many=True) # many means a list, supressing it will returna single object
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data, serializer.data)
+
+    def test_recipe_list_limited_to_user(self):
+        """Test list of recipes is limited to authenticated user."""
+        other_user = get_user_model().objects.create_user(
+            'other@example.com',
+            'otherpass123',
+        )
+        create_recipe(user=other_user)
+        create_recipe(user=self.user)
+
+        res = self.client.get(RECIPE_URL)
+
+        recipes = Recipe.objects.filter(user=self.user)
+        serializer = RecipeSerializer(recipes, many=True) # many means a list, supressing it will returna single object
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data, serializer.data)
+
+```
+
+### 7. Implement recipe listing API
+
+#### 7.1.Create serializers.py file
+
+app\recipe\serializers.py
+```
+"""
+Serializers for recipe API.
+"""
+
+from rest_framework import serializers
+
+from core.models import Recipe
+
+
+class RecipeSerializer(serializers.ModelSerializer):
+    """Serializer for recipes."""
+
+    class Meta:
+        model = Recipe
+        fields = ['id', 'title', 'time_minutes', 'price', 'link']
+        read_only_fields = ['id']
+
+```
+
+#### 7.2. Run tests (Fail)
+
+`$ docker-compose run --rm app sh -c "python manage.py test"`
+
+#### 7.3. Write views
+
+app\recipe\views.py
+```
+"""
+Views for the recipe API.
+"""
+from rest_framework import viewsets
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
+
+from core.models import Recipe
+from recipe import serializers
+
+
+
+class RecipeViewSet(viewsets.ModelViewSet):
+    """View for manage recipe APIs."""
+    serializer_class = serializers.RecipeSerializer
+    queryset = Recipe.objects.all()
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    # Override the get queryset method
+    def get_queryset(self):
+        """Retrieve recipes for authenticated user."""
+        return self.queryset.filter(user=self.request.user).order_by('-id')
+
+```
+
+#### 7.4. Add urls
+
+app\recipe\urls.py
+```
+"""
+URL mappings for the recipe app.
+"""
+from django.urls import (
+    path,
+    include,
+)
+
+from rest_framework.routers import DefaultRouter
+
+from recipe import views
+
+
+router = DefaultRouter()
+router.register('recipes', views.RecipeViewSet)
+
+app_name = 'recipe'
+
+urlpatterns = [
+    path('', include(router.urls)),
+]
+
+```
+
+#### 7.5. Add urls inside the main urls.py file
+
+**Add to file**
+
+app\app\urls.py
+```
+(...)
+urlpatterns = [
+  (...)
+  path('api/recipe/', include('recipe.urls')),
+]
+
+```
+
+**Run tests (Success)**
+
+`$ docker-compose run --rm app sh -c "python manage.py test"`
+
+
+### 8. Write tests for recipes detail API
+
+Edit file
+
+app\recipe\tests\test_recipe_api.py
+```
+(...)
+from recipe.serializers import (
+    RecipeSerializer,
+    RecipeDetailSerializer,
+)
+
+
+RECIPE_URL = reverse('recipe:recipe-list')
+
+
+def detail_url(recipe_id):
+    """Create and return a recipe detail URL."""
+    return reverse('recipe:recipe-detail', args=[recipe_id])
+
+(...)
+
+    def test_get_recipe_detail(self):
+        """Test get recipe detail."""
+        recipe = create_recipe(user=self.user)
+
+        url = detail_url(recipe.id)
+        res = self.client.get(url)
+
+        serializer = RecipeDetailSerializer(recipe)
+        self.assertEqual(res.data, serializer.data)
+
+```
+
+**Run tests (Fail)**
+
+`$ docker-compose run --rm app sh -c "python manage.py test"`
+
+### 9. Implement recipe detail API
+
+The detail serializer is simply an extension of the recipe serializer.
+
+app\recipe\serializers.py
+```
+(...)
+
+
+class RecipeDetailSerializer(RecipeSerializer):
+    """Serializer for recipe detail view."""
+
+    class Meta(RecipeSerializer.Meta):
+        fields = RecipeSerializer.Meta.fields = ['description']
+
+
+```
+
+Modify RecipeViewSet class.
+
+app\recipe\views.py
+```
+"""
+Views for the recipe API.
+"""
+from rest_framework import viewsets
+from rest_framework.authentication import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
+
+from core.models import Recipe
+from recipe import serializers
+
+
+
+class RecipeViewSet(viewsets.ModelViewSet):
+    """View for manage recipe APIs."""
+    serializer_class = serializers.RecipeDetailSerializer
+    queryset = Recipe.objects.all()
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    # Override the get queryset method
+    def get_queryset(self):
+        """Retrieve recipes for authenticated user."""
+        return self.queryset.filter(user=self.request.user).order_by('-id')
+
+    def get_serializer_class(self):
+        """Return the serializer class for request."""
+        if self.action == 'list':
+            return serializers.RecipeSerializer
+
+        return self.serializer_class
+
+```
+
+**Run tests (Success)**
+
+`$ docker-compose run --rm app sh -c "python manage.py test"`
+
+### 10. Write tests for creating recipes
+
+(...)
+
+**Run tests (Fail)**
+
+`$ docker-compose run --rm app sh -c "python manage.py test"`
+
+### 11. Implement create recipe API
+
+
