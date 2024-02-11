@@ -15,7 +15,6 @@ from core.models import (
 from recipe import serializers
 
 
-
 class RecipeViewSet(viewsets.ModelViewSet):
     """View for manage <strong>recipe</strong> APIs."""
     serializer_class = serializers.RecipeDetailSerializer
@@ -40,7 +39,6 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer.save(user=self.request.user)
 
 
-
 class TagViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """View for manage <strong>tags</strong> APIs."""
     serializer_class = serializers.TagSerializer
@@ -52,4 +50,3 @@ class TagViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     def get_queryset(self):
         """Retrieve tags for authenticated user."""
         return self.queryset.filter(user=self.request.user).order_by('-name')
-

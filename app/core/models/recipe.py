@@ -2,13 +2,8 @@
 Recipe model.
 """
 from django.conf import settings
-from .user_manager import UserManager
-from .tag import Tag
 from django.db import models
-from django.contrib.auth.models import (
-    AbstractBaseUser,
-    PermissionsMixin,
-)
+
 
 class Recipe(models.Model):
     """Recipe object."""

@@ -143,7 +143,7 @@ class PrivateUserApiTests(TestCase):
 
     def test_update_user_profile(self):
         """test updating the user profile for the authenticated user."""
-        payload = {'name': 'Updated Name', 'password': 'newpass123',}
+        payload = {'name': 'Updated Name', 'password': 'newpass123', }
 
         res = self.client.patch(ME_URL, payload)
 

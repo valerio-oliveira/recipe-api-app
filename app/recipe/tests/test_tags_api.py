@@ -13,14 +13,12 @@ from core.models import Tag
 from recipe.serializers import TagSerializer
 
 
-
 TAGS_URL = reverse('recipe:tag-list')
 
 
 def create_user(email='user@example.com', password='testpass123'):
     """Create and return a new user."""
     return get_user_model().objects.create_user(email=email, password=password)
-
 
 
 class PublicTagsAPITests(TestCase):
@@ -52,13 +50,17 @@ class PrivateTagsAPITests(TestCase):
         res = self.client.get(TAGS_URL)
 
         tags = Tag.objects.all().order_by('-name')
-        serializer = TagSerializer(tags, many=True) # many means a list, supressing it will returna single object
+        # many means a list, supressing it will returna single object
+        serializer = TagSerializer(tags, many=True)
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data, serializer.data)
 
     def test_test_list_limited_to_user(self):
         """Test list of tags is limited to authenticated user."""
-        other_user = create_user(email='other@example.com', password='otherpass123')
+        other_user = create_user(
+            email='other@example.com',
+            password='otherpass123',
+        )
         Tag.objects.create(user=other_user, name='Fruit')
         tag = Tag.objects.create(user=self.user, name='Comfort Food')
 
@@ -67,4 +69,3 @@ class PrivateTagsAPITests(TestCase):
         self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(res.data[0]['name'], tag.name)
         self.assertEqual(res.data[0]['id'], tag.id)
-

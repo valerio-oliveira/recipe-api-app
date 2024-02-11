@@ -1,8 +1,6 @@
 """
 Teste for models.
 """
-from decimal import Decimal
-
 from django.test import TestCase
 from django.contrib.auth import get_user_model
 
@@ -23,4 +21,3 @@ class TagModelTests(TestCase):
         tag = models.Tag.objects.create(user=user, name='Tag1')
 
         self.assertEqual(str(tag), tag.name)
-
