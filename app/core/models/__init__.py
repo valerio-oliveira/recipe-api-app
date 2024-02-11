@@ -1,4 +1,4 @@
-from .user import User  # flake8: noqa
-from .user_manager import UserManager  # flake8: noqa
-from .recipe import Recipe  # flake8: noqa
-from .tag import Tag  # flake8: noqa
+from .user import User  # noqa: F401
+from .user_manager import UserManager  # noqa: F401
+from .recipe import Recipe  # noqa: F401
+from .tag import Tag  # noqa: F401
