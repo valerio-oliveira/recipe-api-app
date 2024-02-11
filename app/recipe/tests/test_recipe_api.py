@@ -175,9 +175,9 @@ class PrivateRecipeAPITests(TestCase):
 
         payload = {'user': new_user.id}
         url = detail_url(recipe.id)
-        # res = self.client.patch(url, payload)
+        res = self.client.patch(url, payload)
 
-        # self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
         self.assertEqual(recipe.user, self.user)
 
     def test_delete_recipe(self):

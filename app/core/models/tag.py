@@ -2,11 +2,8 @@
 Tag model.
 """
 from django.conf import settings
-from .user_manager import UserManager
 from django.db import models
-from django.contrib.auth.models import (
-    PermissionsMixin,
-)
+
 
 class Tag(models.Model):
     """Tag for filtering recipes."""
