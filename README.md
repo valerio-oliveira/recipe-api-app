@@ -2,56 +2,126 @@
 
 A project for creating a Rest API for culinary recipes, including recipe pictures.
 
+
+## Overview
+
+
+### API Features
+
+- User authentication
+- Creating objects
+- Filtering and sorting objects
+- Uploading and viewing images
+
+
+### Technologies
+
 - Python + DJango + Django REST Framework;
 - PostgreSQL;
-- Test Driven Design (TDD);
 - GitHub Actions automation for code liting and unit tests;
 - DockerHub + GitHub integeration;
-- Automatic documentation with Swagger;
+- Swagger UI;
+
+
+### Apps
+
+- app/ - Django project
+- app/core/ - Code shared between multiple apps
+- app/user/ - User related code
+- app/recipe/ - Recipe related code
+
+
+### Test Driven Development (TDD)
+
+- Is a development best practice
+- Inverted approach: focus on how to test the code, not how to code
+  - Start writing the test
+  - Run the test so it should fail
+  - Add the feature
+  - Run the test again so it will pass
+  - Refactor the code and test again
+
+
+**Unit Tests**
+
+- Code which tests code
+  - Sets up conditions/inputs
+  - Runs a piece of code
+  - Checks output with "assertions"
+
+- Benefits
+  - Ensure code runs as expected
+  - Catches bugs
+  - Improves reliability
+  - Provides confidence
+
 
 ## System Setup
 
-Install applications
+
+### Applications to install
 
 - VS Code
-- Docker Desktop
+- Docker Desktop / Docker for Linux
 - Git
+
+
+### Verify instalation
 
 `$ docker --version`
 
-`Docker version 24.0.7, build afdd53b`
+> Docker version 24.0.7, build afdd53b
 
 `$ docker-compose --version`
 
-`Docker Compose version v2.23.3-desktop.2`
+> Docker Compose version v2.23.3-desktop.2`
 
 `$ git version`
 
-`git version 2.43.0.windows.1`
+> git version 2.43.0.windows.1`
+
+
+## Why use Docker?
+
+- Consistent Dev and Prod environment
+- Easier collaboration
+- Capture all dependencies as code
+  - Python requirements
+  - Operating system dependencies
+- Easier cleanup
+
 
 ## Project Setup
 
+
 ### 1. On Docker Hub
 
-Under Account Settings/Security, create an access Token for my Application. Prefferably the same nome of the app.
+Under Account Settings/Security, create (and copy) the access Token for my Application. Preferably the same nome of the app.
 
-In the future, if I want to revoke access to the Docker Hub, I simply delete the Token.
+In the future, if I want to revoke access to the Docker Hub, I can simply delete the Token.
+
 
 ### 2. On GitHub
 
-Create repository for my Project:
+**Create repository for my Project**
 
-- Create it Public;
+- Name: recipe-app-api
+- Description: Recipe API project.
+- Mark as Public;
 - Mark to add README file;
 - Mark to add .gitignore file;
-- Clone the project on my Workspace;
+  - In drop-down, select python template;
+
+
+**Clone the project on my Workspace**
 
 `$ git clone git@github.com:valerio-oliveira/recipe-api-app.git`
 
-Now, unthe the project's Settings/Secrets, add a new repository Secret:
+**Under the project's Settings/Secrets, add new repository Secrets**
 
-- DOCKERHUB_USER : My DockerHub user name
-- DOCKERHUB_TOKEN : The access Token I've created on step 1
+> DOCKERHUB_USER : My DockerHub user name
+> DOCKERHUB_TOKEN : The access Token I've created on step 1
+
 
 ### 3. Define Python Requirements
 
@@ -59,18 +129,19 @@ Open my project in VSCode
 
 `/recipe-api-app/$ vscode .`
 
+
 #### 3.1. requirements.txt
 
-```
+``` py
 Django>=3.2.4,<3.3
 djangorestframework>=3.12.4,<3.13
 ```
 
 ### 4. Dockerfile
 
-```
+``` Dockerfile
 FROM python:3.9-alpine3.13
-LABEL maintainer="Valerio Oliveira - valerio.net@gmail.com"
+LABEL maintainer="valerio.net@gmail.com"
 
 ENV PYTHONUNBUFFERED 1
 
@@ -102,8 +173,9 @@ ENV PATH="/py/bin:$PATH"
 USER vfoapp-user
 ```
 
-### 5. .gitignore
-```
+### 5. .dockerignore
+
+``` py
 # Git
 .git
 .gitignore
@@ -121,13 +193,13 @@ app/*/*/*/__pycache__/
 venv/
 ```
 
-#### 5.1. Now I can build the empty project
+#### 5.1. Building the empty project
 
 `$ docker-compose build`
 
 ### 6. docker-compose.yml
 
-```
+``` yaml
 version: "3.9"
 
 services:
@@ -167,20 +239,25 @@ volumes:
 
 ### 7. Lint and Test : flake8
 
+
 #### 7.1. requirements.dev.txt
 
-```
+Development dependencies will not be deployed with the production server.
+
+``` py
 flake8>=3.9.2,<3.10
 ```
+
 
 #### 7.2. Validate building the empty propject
 
 `$ docker-compose build`
 
+
 ### 8. .flake8
 
 Under /app/ directory
-```
+``` ini
 [flake8]
 exclude =
     migrations,
@@ -189,22 +266,28 @@ exclude =
     settings.py
 ```
 
-#### 8.1. Run the Linting tool
+
+#### 8.1. Run the linting tests
 
 `$ docker-compose run --rm app sh -c "flake8"`
+
 
 ### 9. Create Django project
 
 `$ docker-compose run --rm app sh -c "django-admin startproject app ."`
 
-#### 9.1. Now I can run the Django project
+> http://localhost:8021
+
+#### 9.1. Run the Django project
 
 `$ docker-compose up`
 
+
 ## Configure GitHub Actions
 
+
 /.github/workflows/checks.yml
-```
+``` yaml
 ---
 name: Checks
 
@@ -228,7 +311,8 @@ jobs:
         run: docker-compose run --rm app sh -c "flake8"
 ```
 
-### Validate actions by Pushing the project
+
+### Validate actions by pushing the project
 
 `$ git add .`
 
@@ -238,14 +322,42 @@ jobs:
 
 See the Git Hub Actions running on the Actions section in the GitHub project.
 
+
 ## Test Driven Development
 
-Create the tests first, and run it.
+*Create the tests first, and run it.*
 
-tests.py
-```
+Create methods matching the tests' expected results, and run it again.
+
+
+### Test Classes
+
+- SimpleTestCase
+  - No database integration
+  - Useful if no database is required
+  - Save time executing tests, because doesn't have do clear database
+- TestCase
+  - Has database integration
+  - Useful if testing code that uses database
+
+
+### Writing tests
+
+- Import test class
+- Import objects to test
+- Define test class, based on the corresponding base class
+- Add test method nnamed with prefix "test"
+- Setup inputs
+- Execute code to be tested
+- Check output
+
+
+### Example
+
+app\app\tests.py
+``` py
 """
-Samble tests
+Sample tests
 """
 from django.test import SimpleTestCase
 
@@ -269,10 +381,9 @@ class CalcTests(SimpleTestCase):
 
 `$ docker-compose run --rm app sh -c "python manage.py test"`
 
-Create methods matching the tests' expected results, and run it again.
 
-calc.py
-```
+app\app\calc.py
+``` py
 """
 Calculator functions
 """
@@ -286,10 +397,11 @@ def subtract(x, y):
     """Subtract x from y and return result"""
     return y - x
 ```
+
 `$ docker-compose run --rm app sh -c "python manage.py test"`
 
 Result:
-```
+``` s
 System check identified no issues (0 silenced).
 ..
 ----------------------------------------------------------------------
@@ -298,10 +410,23 @@ Ran 2 tests in 0.000s
 OK
 ```
 
-## Settings for PostgreSQL database
 
-settings.py
-```
+## Database
+
+- PostgresQL
+  - Popular open source DB
+  - Integrates well with Django
+- Docker Compose
+  - Defined with project (re-usable)
+  - Persistent data using volumes
+  - Handles network configuration
+  - Environment variable configuration
+
+
+### Settings for PostgreSQL database
+
+app\app\settings.py
+``` py
 (...)
 import os
 (...)
@@ -321,9 +446,11 @@ DATABASES = {
 (...)
 ```
 
+
 ## Fixing database race condition
 
 It occours when the database service has started but the PostgreSQL engine is not started yet, and the application tries to connectgetting back an error.
+
 
 ### 1. Create new app: core
 
@@ -334,10 +461,11 @@ Delete files in the core directory:
 - tests.py
 - views.py
 
+
 ### 2. Setup settings
 
-settings.py
-```
+app\app\settings.py
+``` py
 (...)
 INSTALLED_APPS = [
     (...)
@@ -346,11 +474,12 @@ INSTALLED_APPS = [
 (...)
 ```
 
+
 ### 3. Create file structure into the core directory:
 
-Files and directories into the core project
+Files and directories into the **core** project
 
-```
+``` sh
 /core
 - /management
   - __init__.py
@@ -362,8 +491,8 @@ Files and directories into the core project
   - test_commands.py
 ```
 
-wait_for_db.py
-```
+app\core\management\commands\wait_for_db.py
+``` py
 """Django command to wait for the database to be available."""
 
 import time
@@ -393,8 +522,8 @@ class Command(BaseCommand):
 
 ```
 
-test_commands.py
-```
+app\core\tests\test_commands.py
+``` py
 """
 Test custom Django management commands.
 """
@@ -432,6 +561,7 @@ class CommandTests(SimpleTestCase):
 
 ```
 
+
 ### 4. Run tests
 
 Run the mock test for the race condition:
@@ -443,13 +573,27 @@ Test the real race condition fix, as well as the unit tests:
 `$ docker-compose run --rm app sh -c "python manage.py wait_for_db && flake8"`
 
 
-## ... Create User API and Other Configurations ...
+## Create User Model
+
+The user model is customized, based on Django default user model.
+
+
+
+## ... Setup Django Admin ...
 
 ...
 
+
+## ... API Documentation ...
+
+...
+
+
 ## Build Recipe API
 
+
 ### 1. Recipe API Design
+
 
 #### 1.1. Features
 
@@ -461,6 +605,7 @@ All features will be specific for the authenticated user:
 - Update
 - Delete
 
+
 #### 1.2. Endpoints
 
 - /recipes/
@@ -470,6 +615,7 @@ All features will be specific for the authenticated user:
   - GET - View details of recipe
   - PUT/PATCH - Update recipe
   - DELETE - Delete recipe
+
 
 ### 2. APIView vs Viewsets
 
@@ -505,7 +651,7 @@ All features will be specific for the authenticated user:
 **3.1. Create test**
 
 app\core\tests\test_model_recipe.py
-```
+``` py
 """
 Teste for models.
 """
@@ -549,7 +695,7 @@ class RecipeModelTests(TestCase):
 - Recipes are linked to individual users.
 
 app\core\models\recipe.py
-```
+``` py
 """
 Recipe model.
 """
@@ -616,7 +762,7 @@ class Recipe(models.Model):
 
 app\app\settings.py
 
-```
+``` py
 (...)
 
 INSTALLED_APPS = [
@@ -631,7 +777,7 @@ INSTALLED_APPS = [
 
 **6.1. app\recipe\tests\test_recipe_api.py**
 
-```
+``` py
 """
 Tests for recipe API.
 """
@@ -726,7 +872,7 @@ class PrivateRecipeAPITests(TestCase):
 #### 7.1.Create serializers.py file
 
 app\recipe\serializers.py
-```
+``` py
 """
 Serializers for recipe API.
 """
@@ -753,7 +899,7 @@ class RecipeSerializer(serializers.ModelSerializer):
 #### 7.3. Write views
 
 app\recipe\views.py
-```
+``` py
 """
 Views for the recipe API.
 """
@@ -783,7 +929,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
 #### 7.4. Add urls
 
 app\recipe\urls.py
-```
+``` py
 """
 URL mappings for the recipe app.
 """
@@ -813,7 +959,7 @@ urlpatterns = [
 **Add to file**
 
 app\app\urls.py
-```
+``` py
 (...)
 urlpatterns = [
   (...)
@@ -832,7 +978,7 @@ urlpatterns = [
 Edit file
 
 app\recipe\tests\test_recipe_api.py
-```
+``` py
 (...)
 from recipe.serializers import (
     RecipeSerializer,
@@ -870,7 +1016,7 @@ def detail_url(recipe_id):
 The detail serializer is simply an extension of the recipe serializer.
 
 app\recipe\serializers.py
-```
+``` py
 (...)
 
 
@@ -886,7 +1032,7 @@ class RecipeDetailSerializer(RecipeSerializer):
 Modify RecipeViewSet class.
 
 app\recipe\views.py
-```
+``` py
 """
 Views for the recipe API.
 """
@@ -935,3 +1081,461 @@ class RecipeViewSet(viewsets.ModelViewSet):
 ### 11. Implement create recipe API
 
 
+## Build Tag API
+
+### 1. Tag API Design
+
+#### 1.1. Features
+
+The Tag API will have the following functionalities:
+
+- Add ability do att recipe tags
+- Create model for tags
+- Add tag API endpoints
+- Update recipe endpoint
+  - Adding and listing tags
+
+#### 1.2. Tag Model
+
+- name : Name of tag to create
+- user : User who created/owns tag
+
+#### 1.3. Endpoints
+
+- /recipes/tags
+  - POST - Create new tag
+  - PUT/PATCH - Update tags
+  - DELETE - Delete tag
+  - GET - List all tags
+
+
+### 3. Write tests for tag model
+
+Create file app\core\tests\test_model_tag.py
+``` py
+"""
+Teste for models.
+"""
+from django.test import TestCase
+from django.contrib.auth import get_user_model
+
+from core import models
+
+
+def create_user(email='user@example.com', password='testpass123'):
+    """Create and return a new user."""
+    return get_user_model().objects.create_user(email=email, password=password)
+
+
+class TagModelTests(TestCase):
+    """Tests for the Recipe model."""
+
+    def test_create_tag(self):
+        """Test creating a tag is successful."""
+        user = create_user()
+        tag = models.Tag.objects.create(user=user, name='Tag1')
+
+        self.assertEqual(str(tag), tag.name)
+```
+
+**Run tests (Fail)**
+
+`$ docker-compose run --rm app sh -c "python manage.py test"`
+
+### 4. Create tag model
+
+#### 4.1. Create file
+
+app\core\models\tag.py
+``` py
+"""
+Tag model.
+"""
+from django.conf import settings
+from django.db import models
+
+
+class Tag(models.Model):
+    """Tag for filtering recipes."""
+    name = models.CharField(max_length=255)
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
+
+    def __str__(self):
+        return self.name
+```
+
+#### 4.2. Add the link to the tags o the recipe Model.
+
+Edit file
+app\core\models\recipe.py
+
+Ater line:
+
+> link = models.CharField(max_length=255, blank=True)
+
+Add:
+``` py
+    tags = models.ManyToManyField('Tag')
+```
+
+#### 4.3. Import Tag model in \_\_init__.py
+
+Add line in the end of the file
+app\core\models\\_\_init__.py
+``` py
+from .user import User  # noqa: F401
+from .user_manager import UserManager  # noqa: F401
+from .recipe import Recipe  # noqa: F401
+from .tag import Tag  # noqa: F401
+```
+
+#### 4.4. Create migrations for the new model
+
+`$ docker-compose run --rm app sh -c "python manage.py makemigrations"`
+
+New migration file is created in
+app\core\migrations
+
+**Run tests (Fail, asks to delete "test_devdb")**
+
+`$ docker-compose run --rm app sh -c "python manage.py test"`
+
+Type 'yes' to confirm deletion.
+
+
+**Run tests (Success)**
+
+`$ docker-compose run --rm app sh -c "python manage.py test"`
+
+#### 4.5. Register tag model in Django Admin
+
+Add line to the end of the file
+app\core\admin.py
+
+``` py
+(...)
+admin.site.register(models.Tag)
+```
+
+### 6. Create app
+
+(No need for creating app once tags are contained in recipes)
+
+### 6. Write tests for listing tags
+
+Create file
+app\recipe\tests\test_tags_api.py
+``` py
+"""
+Tests for tag API.
+"""
+from django.contrib.auth import get_user_model
+from django.test import TestCase
+from django.urls import reverse
+
+from rest_framework import status
+from rest_framework.test import APIClient
+
+from core.models import Tag
+
+from recipe.serializers import TagSerializer
+
+
+TAGS_URL = reverse('recipe:tag-list')
+
+
+def create_user(email='user@example.com', password='testpass123'):
+    """Create and return a new user."""
+    return get_user_model().objects.create_user(email=email, password=password)
+
+
+class PublicTagsAPITests(TestCase):
+    """Test unauthenticated API requests."""
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_auth_required(self):
+        """Test auth is required to call API."""
+        res = self.client.get(TAGS_URL)
+
+        self.assertEqual(res.status_code, status.HTTP_401_UNAUTHORIZED)
+
+
+class PrivateTagsAPITests(TestCase):
+    """Test authenticated API requests."""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.user = create_user()
+        self.client.force_authenticate(self.user)
+
+    def test_create_tags(self):
+        """Test retrieving a list of tags."""
+        Tag.objects.create(user=self.user, name='Vegan')
+        Tag.objects.create(user=self.user, name='Dessert')
+        Tag.objects.create(user=self.user, name='Drink')
+
+        res = self.client.get(TAGS_URL)
+
+        tags = Tag.objects.all().order_by('-name')
+        # many means a list, supressing it will returna single object
+        serializer = TagSerializer(tags, many=True)
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(res.data, serializer.data)
+        self.assertEqual(len(res.data), len(tags))
+
+
+    def test_test_list_limited_to_user(self):
+        """Test list of tags is limited to authenticated user."""
+        other_user = create_user(
+            email='other@example.com',
+            password='otherpass123',
+        )
+        Tag.objects.create(user=other_user, name='Fruit')
+        tag = Tag.objects.create(user=self.user, name='Comfort Food')
+
+        res = self.client.get(TAGS_URL)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(res.data), 1)
+        self.assertEqual(res.data[0]['name'], tag.name)
+        self.assertEqual(res.data[0]['id'], tag.id)
+
+```
+
+### 7. Implement tag listing API
+
+#### 7.1. Add TagSerializer in recipe serializers.py file
+
+Add to the end of the file
+app\recipe\serializers.py
+```py
+(...)
+class TagSerializer(serializers.ModelSerializer):
+    """Serializer for tags."""
+
+    class Meta:
+        model = Tag
+        fields = ['id', 'name']
+        read_only_fields = ['id']
+```
+
+#### 7.2. Write Viewset
+
+Edit file
+app\revipe\views.py
+``` py
+(...)
+from rest_framework import (
+    viewsets,
+    mixins,
+)
+(...)
+from core.models import (
+    Recipe,
+    Tag,
+)
+(...)
+class TagViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    """Manage tags in the database."""
+    serializer_class = serializers.TagSerializer
+    queryset = Tag.objects.all()
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    # Override the get queryset method
+    def get_queryset(self):
+        """Retrieve tags for authenticated user."""
+        return self.queryset.filter(user=self.request.user).order_by('-name')
+
+```
+
+#### 7.4. Add tags router in recipe urls
+
+Add below recipes router registration
+app\recipe\urls.py
+``` py
+(...)
+router.register('recipes', views.RecipeViewSet)
+router.register('tags', views.TagViewSet)
+(...)
+```
+
+**Run tests (Success)**
+
+`$ docker-compose run --rm app sh -c "python manage.py test"`
+
+
+### 8. Write tests for updating tags
+
+Edit file
+app\recipe\tests\test_tags_api.py
+
+Add below
+> TAGS_URL = reverse('recipe:tag-list')
+
+and at the end of the file
+``` py
+TAGS_URL = reverse('recipe:tag-list')
+
+
+def detail_url(tag_id):
+    """Create and return a tag detail URL."""
+    return reverse('recipe:tag-detail', args=[tag_id])
+
+(...)
+
+    def test_update_tag(self):
+        """Test updating a tag."""
+        tag = Tag.objects.create(user=self.user, name='After Dinner')
+
+        payload = {'name': 'Dessert'}
+        url = detail_url(tag.id)
+        res = self.client.patch(url, payload)
+
+        self.assertEqual(res.status_code, status.HTTP_200_OK)
+        tag.refresh_from_db()
+        self.assertEqual(tag.name, payload['name'])
+
+```
+
+**Run tests (Fail)**
+
+`$ docker-compose run --rm app sh -c "python manage.py test"`
+
+### 9. Implement update tag API
+
+Update file
+app\recipe\views.py
+
+Simply add the parameter **mixins.UpdateModelMixin** to the TagViewSet class.
+``` py
+class TagViewSet(mixins.UpdateModelMixin,
+                 mixins.ListModelMixin,
+                 viewsets.GenericViewSet):
+```
+
+Pay attention to leave the viewset in the last position.
+
+**Run tests (Success)**
+
+`$ docker-compose run --rm app sh -c "python manage.py test"`
+
+### 10. Write tests for deleting tags
+
+Add to the end of file
+app\recipe\tests\test_tags_api.py
+``` py
+    def test_delete_tag(self):
+        """Test deleting tag."""
+        tag = Tag.objects.create(user=self.user, name='Breakfast')
+
+        url = detail_url(tag.id)
+        res = self.client.delete(url)
+
+        self.assertEqual(res.status_code, status.HTTP_204_NO_CONTENT)
+        tags = Tag.objects.filter(user=self.user)
+        self.assertFalse(tags.exists())
+
+```
+
+**Run tests (Fail)**
+
+`$ docker-compose run --rm app sh -c "python manage.py test"`
+
+### 11. Implement delete tag API
+
+Update file
+app\recipe\views.py
+
+As it was for updating, simply add the parameter **mixins.DestroyModelMixin** to the TagViewSet class.
+``` py
+class TagViewSet(mixins.DestroyModelMixin,
+                 mixins.UpdateModelMixin,
+                 mixins.ListModelMixin,
+                 viewsets.GenericViewSet):
+```
+
+**Run tests (Success)**
+
+`$ docker-compose run --rm app sh -c "python manage.py test"`
+
+## Adding Nested Serializers
+
+- Serializer within a serializer
+- Used for fields wich are objects
+
+### 1. Create tests for nested serializers
+
+
+
+--- model ---
+
+## Build <Name> API
+
+### 1. <Name> API Design
+
+#### 1.1. Features
+
+
+#### 1.2. Endpoints
+
+### 3. Write tests for <name> model
+### 4. Create <name> model
+
+### 5. Create <name> app
+### 6. Write tests for listing <name>s
+
+### 7. Implement <name> listing API
+
+#### 7.1.Create serializers.py file
+#### 7.2. Run tests (Fail)
+
+`$ docker-compose run --rm app sh -c "python manage.py test"`
+
+
+#### 7.3. Write views
+
+app\<name>\views.py
+#### 7.4. Add urls
+
+app\<name>\urls.py
+#### 7.5. Add urls inside the main urls.py file
+
+**Add to file**
+
+app\app\urls.py
+### 8. Write tests for <name>s detail API
+
+Edit file
+
+app\recipe\tests\test_<name>_api.py
+
+...
+**Run tests (Fail)**
+
+`$ docker-compose run --rm app sh -c "python manage.py test"`
+
+### 9. Implement <name> detail API
+
+The detail serializer is simply an extension of the <name> serializer.
+
+app\<name>\serializers.py
+
+**Run tests (Success)**
+
+`$ docker-compose run --rm app sh -c "python manage.py test"`
+
+### 10. Write tests for creating <name>s
+
+(...)
+
+**Run tests (Fail)**
+
+`$ docker-compose run --rm app sh -c "python manage.py test"`
+
+### 11. Implement create <name> API
